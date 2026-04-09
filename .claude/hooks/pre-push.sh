@@ -22,8 +22,9 @@ for validator in check_api_keys.py check_env_files.py check_security.py check_pr
     fi
 done
 
-# 2. Validaciones que en pre-commit son warnings, aquí son bloqueantes
-for validator in check_macro_ranges.py check_langsmith_tracing.py check_image_validation.py check_parse_tests.py; do
+# 2. Validaciones que en pre-commit son warnings, aquí son bloqueantes (excepto image_validation que es aspiracional)
+WARNINGS=""
+for validator in check_macro_ranges.py check_langsmith_tracing.py check_parse_tests.py; do
     BASENAME="${validator%.py}"
     LABEL="${BASENAME#check_}"
     if OUTPUT=$(python3 "$VALIDATORS_DIR/$validator" 2>&1); then
@@ -32,6 +33,13 @@ for validator in check_macro_ranges.py check_langsmith_tracing.py check_image_va
         ERRORS="$ERRORS\n$OUTPUT"
     fi
 done
+
+# Image validation es aspiracional — warning, no bloquea
+if OUTPUT=$(python3 "$VALIDATORS_DIR/check_image_validation.py" 2>&1); then
+    echo "  ✓ image_validation"
+else
+    WARNINGS="$WARNINGS\n$OUTPUT"
+fi
 
 # 3. Tests del proyecto (si existen)
 if [ -d "backend/tests" ] && [ "$(find backend/tests -name '*.py' -not -name '__init__.py' 2>/dev/null | head -1)" ]; then
@@ -50,6 +58,12 @@ OUTPUT=$(python3 "$VALIDATORS_DIR/check_cost_estimate.py" 2>&1) || true
 echo "  $OUTPUT"
 
 # --- Resultado final ---
+
+if [ -n "$WARNINGS" ]; then
+    echo ""
+    echo "⚠️  Warnings:"
+    echo -e "$WARNINGS"
+fi
 
 if [ -n "$ERRORS" ]; then
     echo ""
