@@ -8,7 +8,8 @@ import type {
 } from "../types";
 
 // Para desarrollo: cambiar a la IP local de tu máquina
-const API_BASE = "http://localhost:8000/api/v1";
+// Para desarrollo: usa la IP local de tu máquina (no localhost)
+const API_BASE = "http://192.168.1.145:8000/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE,
