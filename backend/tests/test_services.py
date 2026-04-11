@@ -22,7 +22,7 @@ class TestGetLlm:
         mock_settings.google_api_key = "fake-key-for-test"
         llm = get_llm()
         assert llm is not None
-        assert "gemini-2.0-flash" in llm.model
+        assert "gemini-3-flash-preview" in llm.model
 
 
 class TestSetupLangsmith:
