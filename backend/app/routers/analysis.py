@@ -3,7 +3,7 @@
 import base64
 import logging
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.chain.graph import analysis_graph
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/v1", tags=["analysis"])
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze_image(
     image: UploadFile = File(...),
+    comment: str = Form(""),
     db: Session = Depends(get_db),
 ) -> AnalysisResponse:
     """Recibe una imagen de comida, analiza macronutrientes y guarda en DB."""
@@ -27,6 +28,7 @@ async def analyze_image(
 
     initial_state = {
         "image_base64": image_base64,
+        "user_comment": comment.strip(),
         "identified_foods": [],
         "portions": [],
         "macros": {},

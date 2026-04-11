@@ -34,7 +34,7 @@ class TestPrompts:
             assert field in CALCULATE_MACROS_PROMPT, f"Falta {field} en CALCULATE_MACROS_PROMPT"
 
     def test_estimate_portions_se_puede_formatear(self) -> None:
-        formatted = ESTIMATE_PORTIONS_PROMPT.format(foods_list="- arroz\n- pollo")
+        formatted = ESTIMATE_PORTIONS_PROMPT.format(foods_list="- arroz\n- pollo", user_comment_section="")
         assert "arroz" in formatted
         assert "pollo" in formatted
 

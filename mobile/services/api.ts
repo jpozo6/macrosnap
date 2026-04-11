@@ -16,13 +16,16 @@ const api = axios.create({
   timeout: 60000, // 60s para análisis de imagen
 });
 
-export async function analyzeImage(imageUri: string): Promise<AnalysisResult> {
+export async function analyzeImage(imageUri: string, comment?: string): Promise<AnalysisResult> {
   const formData = new FormData();
   formData.append("image", {
     uri: imageUri,
     type: "image/jpeg",
     name: "meal.jpg",
   } as unknown as Blob);
+  if (comment) {
+    formData.append("comment", comment);
+  }
 
   const response = await api.post<AnalysisResult>("/analyze", formData, {
     headers: { "Content-Type": "multipart/form-data" },
