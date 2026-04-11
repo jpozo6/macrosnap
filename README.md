@@ -11,20 +11,40 @@ App de tracking de macronutrientes por foto. Saca una foto de tu comida, la IA a
 
 ## Setup rápido
 
-### Backend
+### 1. Prerrequisitos
+
+- Python 3.11+
+- Node.js 18+ y npm
+- [Expo Go](https://expo.dev/go) instalado en tu móvil (o simulador iOS/Android)
+- API key de [Google AI Studio](https://aistudio.google.com/apikey) (Gemini Flash)
+- API key de [LangSmith](https://smith.langchain.com/) (opcional, para observabilidad)
+
+### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env
-# Edita .env con tus API keys
 
+# Crear y activar entorno virtual
+python3 -m venv venv
+source venv/bin/activate       # macOS/Linux
+# venv\Scripts\activate        # Windows
+
+# Instalar dependencias
 pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+# Edita .env con tus API keys (ver tabla abajo)
+
+# Arrancar el servidor
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-El servidor estará en http://localhost:8000. Docs en http://localhost:8000/docs.
+El servidor estará en http://localhost:8000. Documentación interactiva en http://localhost:8000/docs.
 
-### Mobile
+> Para desactivar el entorno virtual cuando termines: `deactivate`
+
+### 3. Mobile
 
 ```bash
 cd mobile
@@ -34,14 +54,24 @@ npx expo start
 
 Escanea el QR con Expo Go o presiona `i` para iOS / `a` para Android.
 
-### Variables de entorno
+> Asegúrate de que el móvil y el ordenador estén en la misma red WiFi.
 
-| Variable | Descripción |
-|---|---|
-| `GOOGLE_API_KEY` | API key de Google AI (Gemini Flash) |
-| `LANGSMITH_API_KEY` | API key de LangSmith (opcional) |
-| `LANGSMITH_PROJECT` | Nombre del proyecto en LangSmith |
-| `DATABASE_URL` | URL de la base de datos |
+### Variables de entorno (`backend/.env`)
+
+| Variable | Descripción | Requerida |
+|---|---|---|
+| `GOOGLE_API_KEY` | API key de Google AI (Gemini Flash) | Sí |
+| `LANGSMITH_API_KEY` | API key de LangSmith | No |
+| `LANGSMITH_PROJECT` | Nombre del proyecto en LangSmith | No |
+| `DATABASE_URL` | URL de la base de datos (default: SQLite local) | No |
+
+### Tests
+
+```bash
+cd backend
+source venv/bin/activate
+python -m pytest tests/ -v
+```
 
 ## Pipeline de análisis
 

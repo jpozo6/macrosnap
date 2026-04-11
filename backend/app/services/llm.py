@@ -13,7 +13,7 @@ def get_llm() -> ChatGoogleGenerativeAI:
             "Copia backend/.env.example a backend/.env y configura tu API key."
         )
     return ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
+        model="gemini-3-flash-preview",
         google_api_key=settings.google_api_key,
         temperature=0.1,
     )
