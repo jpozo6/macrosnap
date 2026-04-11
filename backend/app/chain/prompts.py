@@ -1,7 +1,7 @@
 """Prompt templates para cada nodo del pipeline de análisis."""
 
 IDENTIFY_FOODS_PROMPT = """Analiza esta imagen de comida. Lista cada alimento visible con su nivel de confianza (0.0 a 1.0).
-
+{user_comment_section}
 Responde ÚNICAMENTE con un JSON válido con esta estructura exacta:
 {{
   "foods": [
@@ -18,6 +18,7 @@ ESTIMATE_PORTIONS_PROMPT = """Dada esta lista de alimentos identificados en una 
 
 Alimentos identificados:
 {foods_list}
+{user_comment_section}
 
 Responde ÚNICAMENTE con un JSON válido con esta estructura exacta:
 {{

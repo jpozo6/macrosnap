@@ -76,6 +76,7 @@ class TestIdentifyFoods:
 
         state = {
             "image_base64": "fake_base64_data",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [],
             "macros": {},
@@ -93,6 +94,7 @@ class TestIdentifyFoods:
 
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [],
             "macros": {},
@@ -114,6 +116,7 @@ class TestIdentifyFoods:
 
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [],
             "macros": {},
@@ -141,6 +144,7 @@ class TestEstimatePortions:
 
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [{"name": "arroz blanco", "confidence": 0.95}],
             "portions": [],
             "macros": {},
@@ -154,6 +158,7 @@ class TestEstimatePortions:
     def test_estimate_portions_con_error_previo(self) -> None:
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [],
             "macros": {},
@@ -184,6 +189,7 @@ class TestCalculateMacros:
 
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [{"name": "arroz", "confidence": 0.95}],
             "portions": [{"name": "arroz", "amount": 200, "unit": "g"}],
             "macros": {},
@@ -199,6 +205,7 @@ class TestCalculateMacros:
     def test_calculate_macros_con_error_previo(self) -> None:
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [],
             "macros": {},
@@ -221,6 +228,7 @@ class TestCalculateMacros:
 
         state = {
             "image_base64": "fake",
+            "user_comment": "",
             "identified_foods": [],
             "portions": [{"name": "algo", "amount": 100, "unit": "g"}],
             "macros": {},

@@ -16,10 +16,10 @@ export function useAnalysis() {
   } = useMealStore();
 
   const analyze = useCallback(
-    async (imageUri: string) => {
+    async (imageUri: string, comment?: string) => {
       setAnalysisLoading();
       try {
-        const result = await analyzeImage(imageUri);
+        const result = await analyzeImage(imageUri, comment);
         setAnalysisSuccess(result);
         return result;
       } catch (err) {

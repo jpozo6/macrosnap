@@ -5,9 +5,14 @@ import {
   View,
   Text,
   Image,
+  TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { CameraView } from "expo-camera";
 import { useRouter } from "expo-router";
@@ -22,6 +27,7 @@ export default function CameraScreen() {
     useCamera();
   const { analyze, status } = useAnalysis();
   const [showPreview, setShowPreview] = useState(false);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     requestPermission();
@@ -44,14 +50,16 @@ export default function CameraScreen() {
   const handleRetry = () => {
     clearPhoto();
     setShowPreview(false);
+    setComment("");
   };
 
   const handleAnalyze = async () => {
     if (!photo) return;
-    const result = await analyze(photo);
+    const result = await analyze(photo, comment || undefined);
     if (result) {
       setShowPreview(false);
       clearPhoto();
+      setComment("");
       router.push(`/result/${result.meal_id}`);
     }
   };
@@ -80,29 +88,48 @@ export default function CameraScreen() {
   // Preview de la foto capturada
   if (showPreview && photo) {
     return (
-      <View style={styles.container}>
-        <Image source={{ uri: photo }} style={styles.preview} />
-        {status === "loading" ? (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#4ADE80" />
-            <Text style={styles.loadingText}>Analizando tu comida...</Text>
-          </View>
-        ) : (
-          <View style={styles.previewActions}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Repetir</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyze}>
-              <Text style={styles.analyzeButtonText}>Analizar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {status === "error" && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>Error al analizar. Intenta de nuevo.</Text>
-          </View>
-        )}
-      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={styles.previewContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+        >
+          <Image source={{ uri: photo }} style={styles.previewImage} />
+          {status === "loading" ? (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#4ADE80" />
+              <Text style={styles.loadingText}>Analizando tu comida...</Text>
+            </View>
+          ) : (
+            <View style={styles.previewBottom}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Ej: 200g de pechuga, arroz integral..."
+                placeholderTextColor="#666"
+                value={comment}
+                onChangeText={setComment}
+                multiline
+                maxLength={300}
+                returnKeyType="done"
+                blurOnSubmit
+              />
+              <View style={styles.previewActions}>
+                <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                  <Text style={styles.buttonText}>Repetir</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyze}>
+                  <Text style={styles.analyzeButtonText}>Analizar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {status === "error" && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>Error al analizar. Intenta de nuevo.</Text>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     );
   }
 
@@ -123,32 +150,52 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: "#0F0F0F",
+  },
   camera: {
     flex: 1,
     width: "100%",
   },
-  preview: {
+  previewImage: {
     flex: 1,
     width: "100%",
     resizeMode: "cover",
   },
+  previewBottom: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+    backgroundColor: "#0F0F0F",
+  },
+  commentInput: {
+    backgroundColor: "rgba(26,26,26,0.9)",
+    color: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
   previewActions: {
-    position: "absolute",
-    bottom: 40,
     flexDirection: "row",
     gap: 20,
-    paddingHorizontal: 30,
   },
   retryButton: {
     flex: 1,
-    paddingVertical: 16,
+    height: 52,
+    justifyContent: "center",
     borderRadius: 16,
     backgroundColor: "#1A1A1A",
     alignItems: "center",
   },
   analyzeButton: {
     flex: 1,
-    paddingVertical: 16,
+    height: 52,
+    justifyContent: "center",
     borderRadius: 16,
     backgroundColor: "#4ADE80",
     alignItems: "center",
