@@ -1,8 +1,17 @@
 #!/bin/bash
 # Pre-push hook: validaciones estrictas antes de permitir git push.
-# Se invoca como hook de Claude Code (PreToolUse en Bash, filtrado con if: "Bash(git push*)").
+# Se invoca como hook de Claude Code (PreToolUse en Bash).
+# Filtra por stdin JSON: solo ejecuta si el comando es "git push*".
 
 set -euo pipefail
+
+# Leer stdin y verificar si el comando es git push
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+
+if [[ "$COMMAND" != git\ push* ]]; then
+    exit 0
+fi
 
 HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
 VALIDATORS_DIR="$HOOKS_DIR/validators"
