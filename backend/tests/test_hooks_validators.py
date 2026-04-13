@@ -10,11 +10,13 @@ VALIDATORS_DIR = Path(__file__).resolve().parent.parent.parent / ".claude" / "ho
 def _run_validator(name: str) -> subprocess.CompletedProcess:
     """Ejecuta un validador y retorna el resultado."""
     script = VALIDATORS_DIR / name
+    env = {**subprocess.os.environ, "PYTHONIOENCODING": "utf-8"}
     return subprocess.run(
         [sys.executable, str(script)],
         capture_output=True,
         text=True,
         cwd=str(Path(__file__).resolve().parent.parent.parent),
+        env=env,
     )
 
 

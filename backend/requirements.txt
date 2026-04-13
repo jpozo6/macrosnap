@@ -10,6 +10,7 @@ langchain-google-genai==2.0.8
 langgraph==0.2.62
 langsmith==0.2.10
 Pillow==11.1.0
+psycopg2-binary==2.9.10
 
 # Test
 pytest==8.4.2
