@@ -25,6 +25,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# Web build output
+web-dist/
+
 # Generated docs
 docs/*.png
 docs/*.mmd

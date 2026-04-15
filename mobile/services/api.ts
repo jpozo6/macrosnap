@@ -1,6 +1,7 @@
 /** Cliente HTTP para comunicación con el backend. */
 
 import axios from "axios";
+import { Platform } from "react-native";
 import type {
   AnalysisResult,
   DailySummary,
@@ -17,19 +18,28 @@ const api = axios.create({
 
 export async function analyzeImage(imageUri: string, comment?: string): Promise<AnalysisResult> {
   const formData = new FormData();
-  formData.append("image", {
-    uri: imageUri,
-    type: "image/jpeg",
-    name: "meal.jpg",
-  } as unknown as Blob);
+
+  if (Platform.OS === "web") {
+    // En web, imageUri es un blob URL — fetch para obtener el File
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    formData.append("image", blob, "meal.jpg");
+  } else {
+    formData.append("image", {
+      uri: imageUri,
+      type: "image/jpeg",
+      name: "meal.jpg",
+    } as unknown as Blob);
+  }
+
   if (comment) {
     formData.append("comment", comment);
   }
 
-  const response = await api.post<AnalysisResult>("/analyze", formData, {
+  const res = await api.post<AnalysisResult>("/analyze", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return response.data;
+  return res.data;
 }
 
 export async function getMeals(params?: {

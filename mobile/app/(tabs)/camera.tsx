@@ -14,15 +14,20 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { CameraView } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useCamera } from "../../hooks/useCamera";
 import { useAnalysis } from "../../hooks/useAnalysis";
 import { CameraOverlay } from "../../components/CameraOverlay";
 
+let CameraView: React.ComponentType<Record<string, unknown>> | null = null;
+if (Platform.OS !== "web") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  CameraView = require("expo-camera").CameraView;
+}
+
 export default function CameraScreen() {
   const router = useRouter();
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef(null);
   const { photo, hasPermission, requestPermission, takePhoto, pickFromGallery, clearPhoto } =
     useCamera();
   const { analyze, status } = useAnalysis();
@@ -34,7 +39,10 @@ export default function CameraScreen() {
   }, [requestPermission]);
 
   const handleCapture = async () => {
-    if (cameraRef.current) {
+    if (Platform.OS === "web") {
+      const uri = await takePhoto(null);
+      if (uri) setShowPreview(true);
+    } else if (cameraRef.current) {
       await takePhoto(cameraRef.current);
       setShowPreview(true);
     }
@@ -133,12 +141,31 @@ export default function CameraScreen() {
     );
   }
 
-  // Vista de cámara
+  // Vista de cámara (nativa) o botón de subida (web)
+  if (Platform.OS === "web") {
+    return (
+      <View style={styles.container}>
+        <View style={styles.webUploadContainer}>
+          <Text style={styles.webTitle}>MacroSnap</Text>
+          <Text style={styles.webSubtitle}>Sube una foto de tu comida</Text>
+          <TouchableOpacity style={styles.webCaptureButton} onPress={handleCapture}>
+            <Text style={styles.webCaptureText}>Hacer foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.webGalleryButton} onPress={handleGallery}>
+            <Text style={styles.webGalleryText}>Elegir de galeria</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back">
-        <CameraOverlay onCapture={handleCapture} onGallery={handleGallery} />
-      </CameraView>
+      {CameraView && (
+        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+          <CameraOverlay onCapture={handleCapture} onGallery={handleGallery} />
+        </CameraView>
+      )}
     </View>
   );
 }
@@ -253,5 +280,47 @@ const styles = StyleSheet.create({
     color: "#0F0F0F",
     fontWeight: "700",
     fontSize: 16,
+  },
+  webUploadContainer: {
+    alignItems: "center",
+    gap: 16,
+    paddingHorizontal: 40,
+  },
+  webTitle: {
+    color: "#4ADE80",
+    fontSize: 32,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  webSubtitle: {
+    color: "#AAAAAA",
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  webCaptureButton: {
+    width: "100%",
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#4ADE80",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  webCaptureText: {
+    color: "#0F0F0F",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  webGalleryButton: {
+    width: "100%",
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#1A1A1A",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  webGalleryText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "600",
   },
 });
