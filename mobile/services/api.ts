@@ -7,9 +7,8 @@ import type {
   Meal,
 } from "../types";
 
-// Para desarrollo: cambiar a la IP local de tu máquina
-// Para desarrollo: usa la IP local de tu máquina (no localhost)
-const API_BASE = "http://192.168.1.145:8000/api/v1";
+// Producción: IP del servidor Hetzner (Caddy proxy en puerto 80)
+const API_BASE = "http://94.130.228.161/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE,
