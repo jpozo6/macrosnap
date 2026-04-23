@@ -3,9 +3,28 @@
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.db import Base
+
+
+class User(Base):
+    """Usuario registrado de MacroSnap."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    verification_token = Column(String(255), nullable=True, unique=True, index=True)
+    verification_token_expires_at = Column(DateTime, nullable=True)
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+    meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
 
 
 class Meal(Base):
@@ -14,6 +33,7 @@ class Meal(Base):
     __tablename__ = "meals"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     meal_name = Column(String(255), nullable=False)
     calories = Column(Float, nullable=False, default=0)
     protein_g = Column(Float, nullable=False, default=0)
@@ -25,6 +45,8 @@ class Meal(Base):
     created_at = Column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
+
+    user = relationship("User", back_populates="meals")
 
     @property
     def foods(self) -> list[dict]:

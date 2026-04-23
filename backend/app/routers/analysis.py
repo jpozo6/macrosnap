@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.chain.graph import analysis_graph
 from app.db import get_db
-from app.models import Meal
+from app.dependencies import get_current_user
+from app.models import Meal, User
 from app.schemas import AnalysisResponse, FoodItem, MacroNutrients
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ async def analyze_image(
     image: UploadFile = File(...),
     comment: str = Form(""),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AnalysisResponse:
     """Recibe una imagen de comida, analiza macronutrientes y guarda en DB."""
     contents = await image.read()
@@ -61,6 +63,7 @@ async def analyze_image(
 
     # Guardar en DB
     meal = Meal(
+        user_id=current_user.id,
         meal_name=result.get("meal_name", "Comida"),
         calories=macros.get("calories", 0),
         protein_g=macros.get("protein_g", 0),

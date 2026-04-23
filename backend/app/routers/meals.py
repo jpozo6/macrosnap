@@ -7,7 +7,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Meal
+from app.dependencies import get_current_user
+from app.models import Meal, User
 from app.schemas import DailySummaryResponse, FoodItem, MacroNutrients, MealResponse
 
 router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
@@ -38,9 +39,10 @@ def list_meals(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[MealResponse]:
-    """Lista las comidas del histórico con filtros opcionales."""
-    query = db.query(Meal)
+    """Lista las comidas del usuario autenticado con filtros opcionales."""
+    query = db.query(Meal).filter(Meal.user_id == current_user.id)
 
     if date_from:
         query = query.filter(
@@ -59,8 +61,9 @@ def list_meals(
 def daily_summary(
     date: date = Query(..., description="Fecha en formato YYYY-MM-DD"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> DailySummaryResponse:
-    """Devuelve el resumen diario de macronutrientes."""
+    """Devuelve el resumen diario de macronutrientes del usuario autenticado."""
     start = datetime(date.year, date.month, date.day, tzinfo=timezone.utc)
     end = start.replace(hour=23, minute=59, second=59)
 
@@ -71,7 +74,11 @@ def daily_summary(
         func.coalesce(func.sum(Meal.carbs_g), 0).label("carbs_g"),
         func.coalesce(func.sum(Meal.fat_g), 0).label("fat_g"),
         func.coalesce(func.sum(Meal.fiber_g), 0).label("fiber_g"),
-    ).filter(Meal.created_at >= start, Meal.created_at <= end).one()
+    ).filter(
+        Meal.user_id == current_user.id,
+        Meal.created_at >= start,
+        Meal.created_at <= end,
+    ).one()
 
     return DailySummaryResponse(
         date=date.isoformat(),
@@ -90,9 +97,12 @@ def daily_summary(
 def get_meal(
     meal_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> MealResponse:
-    """Obtiene el detalle de una comida."""
-    meal = db.query(Meal).filter(Meal.id == meal_id).first()
+    """Obtiene el detalle de una comida del usuario autenticado."""
+    meal = db.query(Meal).filter(
+        Meal.id == meal_id, Meal.user_id == current_user.id
+    ).first()
     if not meal:
         raise HTTPException(status_code=404, detail="Comida no encontrada")
     return _meal_to_response(meal)
@@ -102,9 +112,12 @@ def get_meal(
 def delete_meal(
     meal_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> None:
-    """Elimina una comida del histórico."""
-    meal = db.query(Meal).filter(Meal.id == meal_id).first()
+    """Elimina una comida del histórico del usuario autenticado."""
+    meal = db.query(Meal).filter(
+        Meal.id == meal_id, Meal.user_id == current_user.id
+    ).first()
     if not meal:
         raise HTTPException(status_code=404, detail="Comida no encontrada")
     db.delete(meal)
