@@ -9,8 +9,10 @@ from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db import Base, get_db
+from app.dependencies import get_current_user
 from app.main import app
-from app.models import Meal
+from app.models import Meal, User
+from app.security import create_access_token, hash_password
 
 # SQLite in-memory con StaticPool para compartir la misma conexión entre threads
 test_engine = create_engine(
@@ -40,22 +42,83 @@ def db_session() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> TestClient:
-    """Cliente de test de FastAPI con BD de test inyectada."""
+def user(db_session: Session) -> User:
+    """Usuario de prueba ya verificado."""
+    u = User(
+        email="test@example.com",
+        hashed_password=hash_password("Password123!"),
+        is_verified=True,
+    )
+    db_session.add(u)
+    db_session.commit()
+    db_session.refresh(u)
+    return u
 
+
+@pytest.fixture
+def other_user(db_session: Session) -> User:
+    """Segundo usuario, útil para tests de aislamiento."""
+    u = User(
+        email="otro@example.com",
+        hashed_password=hash_password("Password123!"),
+        is_verified=True,
+    )
+    db_session.add(u)
+    db_session.commit()
+    db_session.refresh(u)
+    return u
+
+
+@pytest.fixture
+def unverified_user(db_session: Session) -> User:
+    """Usuario registrado pero sin verificar email."""
+    u = User(
+        email="pending@example.com",
+        hashed_password=hash_password("Password123!"),
+        is_verified=False,
+        verification_token="test-verification-token-abc123",
+    )
+    db_session.add(u)
+    db_session.commit()
+    db_session.refresh(u)
+    return u
+
+
+def _build_client(db_session: Session, current_user: User | None) -> TestClient:
+    """Crea un TestClient con BD inyectada y, opcionalmente, usuario autenticado."""
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
+    if current_user is not None:
+        app.dependency_overrides[get_current_user] = lambda: current_user
+    return TestClient(app)
+
+
+@pytest.fixture
+def anon_client(db_session: Session) -> Generator[TestClient, None, None]:
+    """Cliente sin autenticación (para probar endpoints públicos o 401)."""
+    with _build_client(db_session, None) as c:
         yield c
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def sample_meal(db_session: Session) -> Meal:
-    """Crea una comida de ejemplo en la BD de test."""
+def client(db_session: Session, user: User) -> Generator[TestClient, None, None]:
+    """Cliente autenticado como `user` (default para la mayoría de tests)."""
+    with _build_client(db_session, user) as c:
+        # Header Authorization real para los tests que pasan por OAuth2 scheme
+        token = create_access_token(subject=user.id)
+        c.headers.update({"Authorization": f"Bearer {token}"})
+        yield c
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def sample_meal(db_session: Session, user: User) -> Meal:
+    """Crea una comida de ejemplo en la BD de test, asociada al usuario."""
     meal = Meal(
+        user_id=user.id,
         meal_name="Arroz con pollo",
         calories=450.0,
         protein_g=30.5,
@@ -75,7 +138,7 @@ def sample_meal(db_session: Session) -> Meal:
 
 
 @pytest.fixture
-def sample_meals(db_session: Session) -> list[Meal]:
+def sample_meals(db_session: Session, user: User) -> list[Meal]:
     """Crea varias comidas de ejemplo para tests de listado."""
     meals = []
     for i, (name, cal) in enumerate([
@@ -84,6 +147,7 @@ def sample_meals(db_session: Session) -> list[Meal]:
         ("Sopa de verduras", 150.0),
     ]):
         meal = Meal(
+            user_id=user.id,
             meal_name=name,
             calories=cal,
             protein_g=20.0 + i * 5,

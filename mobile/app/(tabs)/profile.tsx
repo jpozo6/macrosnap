@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { useMealStore } from "../../store/useMealStore";
+import { useAuthStore } from "../../store/useAuthStore";
 import { getMacroGoals, saveMacroGoals } from "../../services/storage";
 import type { MacroGoals } from "../../types";
 
@@ -30,7 +31,15 @@ const GOAL_FIELDS: GoalField[] = [
 
 export default function ProfileScreen() {
   const { goals, setGoals } = useMealStore();
+  const { user, logout } = useAuthStore();
   const [draft, setDraft] = useState<MacroGoals>(goals);
+
+  const handleLogout = () => {
+    Alert.alert("Cerrar sesión", "¿Seguro que quieres salir?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Salir", style: "destructive", onPress: () => { void logout(); } },
+    ]);
+  };
 
   useEffect(() => {
     getMacroGoals().then((saved) => {
@@ -79,6 +88,16 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Guardar objetivos</Text>
       </TouchableOpacity>
+
+      {user ? (
+        <View style={styles.accountCard}>
+          <Text style={styles.accountLabel}>Cuenta</Text>
+          <Text style={styles.accountEmail}>{user.email}</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>MacroSnap v1.0</Text>
@@ -175,5 +194,35 @@ const styles = StyleSheet.create({
     color: "#999999",
     fontSize: 14,
     lineHeight: 20,
+  },
+  accountCard: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  accountLabel: {
+    color: "#999",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  accountEmail: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  logoutButton: {
+    backgroundColor: "#2A1515",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#F87171",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

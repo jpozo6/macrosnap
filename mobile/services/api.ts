@@ -16,6 +16,40 @@ const api = axios.create({
   timeout: 60000, // 60s para análisis de imagen
 });
 
+// Token provider inyectable desde el auth store. Evita import circular.
+let tokenProvider: () => string | null = () => null;
+let onUnauthorized: (() => void) | null = null;
+
+export function configureAuth(opts: {
+  getToken: () => string | null;
+  onUnauthorized?: () => void;
+}): void {
+  tokenProvider = opts.getToken;
+  onUnauthorized = opts.onUnauthorized ?? null;
+}
+
+api.interceptors.request.use((config) => {
+  const token = tokenProvider();
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Solo tratamos como sesión expirada si había token en la request.
+    const hadAuth = !!error?.config?.headers?.Authorization;
+    const status = error?.response?.status;
+    if (hadAuth && (status === 401 || status === 403) && onUnauthorized) {
+      onUnauthorized();
+    }
+    return Promise.reject(error);
+  },
+);
+
 export async function analyzeImage(imageUri: string, comment?: string): Promise<AnalysisResult> {
   const formData = new FormData();
 

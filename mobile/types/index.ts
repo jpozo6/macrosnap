@@ -45,3 +45,15 @@ export interface MacroGoals {
 }
 
 export type AnalysisStatus = "idle" | "loading" | "success" | "error";
+
+export interface User {
+  id: number;
+  email: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface AuthSession {
+  token: string;
+  user: User;
+}
