@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Verificación de email
     verification_token_expire_hours: int = 24
 
+    # Reset de contraseña
+    reset_password_token_expire_hours: int = 1
+
     # SMTP (rellenar en .env)
     smtp_host: str = ""
     smtp_port: int = 587

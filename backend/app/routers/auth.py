@@ -11,8 +11,10 @@ from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User
 from app.schemas import (
+    ForgotPasswordRequest,
     MessageResponse,
     ResendVerificationRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserCreate,
     UserLogin,
@@ -20,11 +22,12 @@ from app.schemas import (
 )
 from app.security import (
     create_access_token,
+    generate_reset_password_token,
     generate_verification_token,
     hash_password,
     verify_password,
 )
-from app.services.email import send_verification_email
+from app.services.email import send_reset_password_email, send_verification_email
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,14 @@ def _new_verification(user: User) -> None:
     user.verification_token = generate_verification_token()
     user.verification_token_expires_at = datetime.now(timezone.utc) + timedelta(
         hours=settings.verification_token_expire_hours
+    )
+
+
+def _new_reset_password(user: User) -> None:
+    """Asigna un nuevo token de reset de contraseña con expiración."""
+    user.reset_password_token = generate_reset_password_token()
+    user.reset_password_token_expires_at = datetime.now(timezone.utc) + timedelta(
+        hours=settings.reset_password_token_expire_hours
     )
 
 
@@ -131,6 +142,54 @@ async def resend_verification(
             logger.exception("Fallo al reenviar verificación a %s: %s", email, e)
     return MessageResponse(
         message="Si el email existe y no está verificado, te hemos enviado un nuevo enlace."
+    )
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    """Inicia el flujo de reset. Respuesta genérica para no filtrar existencia."""
+    email = _normalize_email(payload.email)
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        _new_reset_password(user)
+        db.commit()
+        try:
+            await send_reset_password_email(to=email, token=user.reset_password_token)
+        except Exception as e:
+            logger.exception("Fallo al enviar email de reset a %s: %s", email, e)
+    return MessageResponse(
+        message=(
+            "Si el email existe, te hemos enviado un enlace para restablecer "
+            "la contraseña."
+        )
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    """Establece una nueva contraseña a partir del token de reset."""
+    user = db.query(User).filter(User.reset_password_token == payload.token).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido.")
+
+    expires = user.reset_password_token_expires_at
+    if expires and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if not expires or expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token caducado.")
+
+    user.hashed_password = hash_password(payload.new_password)
+    user.reset_password_token = None
+    user.reset_password_token_expires_at = None
+    db.commit()
+    return MessageResponse(
+        message="Contraseña actualizada correctamente. Ya puedes iniciar sesión."
     )
 
 
