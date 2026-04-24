@@ -3,13 +3,14 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User
+from app.rate_limit import limiter
 from app.schemas import (
     ForgotPasswordRequest,
     MessageResponse,
@@ -55,7 +56,12 @@ def _new_reset_password(user: User) -> None:
 
 
 @router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, db: Session = Depends(get_db)) -> MessageResponse:
+@limiter.limit(settings.rate_limit_register)
+async def register(
+    request: Request,
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
     """Registra un nuevo usuario y envía email de verificación."""
     email = _normalize_email(payload.email)
 
@@ -84,7 +90,12 @@ async def register(payload: UserCreate, db: Session = Depends(get_db)) -> Messag
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: UserLogin, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit(settings.rate_limit_login)
+def login(
+    request: Request,
+    payload: UserLogin,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
     """Autentica con email/password y devuelve un JWT."""
     email = _normalize_email(payload.email)
     user = db.query(User).filter(User.email == email).first()
@@ -126,7 +137,9 @@ def verify_email(
 
 
 @router.post("/resend-verification", response_model=MessageResponse)
+@limiter.limit(settings.rate_limit_resend_verification)
 async def resend_verification(
+    request: Request,
     payload: ResendVerificationRequest,
     db: Session = Depends(get_db),
 ) -> MessageResponse:
@@ -146,7 +159,9 @@ async def resend_verification(
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit(settings.rate_limit_forgot_password)
 async def forgot_password(
+    request: Request,
     payload: ForgotPasswordRequest,
     db: Session = Depends(get_db),
 ) -> MessageResponse:
@@ -169,7 +184,9 @@ async def forgot_password(
 
 
 @router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit(settings.rate_limit_reset_password)
 def reset_password(
+    request: Request,
     payload: ResetPasswordRequest,
     db: Session = Depends(get_db),
 ) -> MessageResponse:

@@ -12,7 +12,12 @@ from app.db import Base, get_db
 from app.dependencies import get_current_user
 from app.main import app
 from app.models import Meal, User
+from app.rate_limit import limiter
 from app.security import create_access_token, hash_password
+
+# En tests desactivamos el rate limiter por defecto: los tests no deben
+# depender de contadores globales ni de temporizaciones.
+limiter.enabled = False
 
 # SQLite in-memory con StaticPool para compartir la misma conexión entre threads
 test_engine = create_engine(
