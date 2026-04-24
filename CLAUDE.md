@@ -33,6 +33,14 @@ Cada ejecución del grafo se tracéa automáticamente en LangSmith.
 - ACCESS_TOKEN_EXPIRE_MINUTES — minutos de vida del JWT (default 10080 = 7 días)
 - VERIFICATION_TOKEN_EXPIRE_HOURS — horas de vida del token de verificación (default 24)
 - RESET_PASSWORD_TOKEN_EXPIRE_HOURS — horas de vida del token de reset de contraseña (default 1)
+
+### Rate limiting (slowapi, por IP)
+- RATE_LIMIT_ENABLED — `true` por defecto; los tests lo fuerzan a `false`
+- RATE_LIMIT_LOGIN — default `5/minute`
+- RATE_LIMIT_REGISTER — default `5/hour`
+- RATE_LIMIT_FORGOT_PASSWORD — default `3/hour`
+- RATE_LIMIT_RESET_PASSWORD — default `5/minute`
+- RATE_LIMIT_RESEND_VERIFICATION — default `3/hour`
 - FRONTEND_URL — URL pública del frontend para construir el enlace de verificación
   (dev local: `http://localhost:8081`, prod web: `http://<tu-host>`)
 
@@ -63,6 +71,10 @@ contenido del email (útil en desarrollo).
   `expo-secure-store` (nativo) o `localStorage` (web).
 - Todas las rutas de `/meals` y `/analyze` requieren usuario autenticado; los meals
   están filtrados por `user_id`.
+- Los endpoints sensibles (`/login`, `/register`, `/forgot-password`,
+  `/reset-password`, `/resend-verification`) tienen rate limit por IP vía
+  slowapi para mitigar fuerza bruta y flooding de emails. Los límites son
+  configurables y se desactivan en tests.
 
 ## Tests
 - `cd backend && python -m pytest tests/ -v` — ejecutar todos los tests (97 tests)

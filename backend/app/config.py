@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     # Reset de contraseña
     reset_password_token_expire_hours: int = 1
 
+    # Rate limiting (slowapi). Activo por defecto; se desactiva en tests.
+    rate_limit_enabled: bool = True
+    rate_limit_login: str = "5/minute"
+    rate_limit_register: str = "5/hour"
+    rate_limit_forgot_password: str = "3/hour"
+    rate_limit_reset_password: str = "5/minute"
+    rate_limit_resend_verification: str = "3/hour"
+
     # SMTP (rellenar en .env)
     smtp_host: str = ""
     smtp_port: int = 587
