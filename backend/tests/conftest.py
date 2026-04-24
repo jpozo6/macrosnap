@@ -14,10 +14,22 @@ from app.main import app
 from app.models import Meal, User
 from app.rate_limit import limiter
 from app.security import create_access_token, hash_password
+from app.services import email as email_service
 
 # En tests desactivamos el rate limiter por defecto: los tests no deben
 # depender de contadores globales ni de temporizaciones.
 limiter.enabled = False
+
+
+# Reemplazamos el envío SMTP por un no-op. Si el `.env` del entorno (dev o CI)
+# tuviera credenciales SMTP reales, los tests enviarían emails a direcciones
+# @example.com y generarían bounces al buzón del SMTP_FROM. Hacerlo aquí blinda
+# la suite independientemente de la config del entorno.
+async def _test_noop_send_email(**kwargs: object) -> bool:
+    return False
+
+
+email_service.send_email = _test_noop_send_email  # type: ignore[assignment]
 
 # SQLite in-memory con StaticPool para compartir la misma conexión entre threads
 test_engine = create_engine(
