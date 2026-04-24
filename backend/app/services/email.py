@@ -86,3 +86,40 @@ async def send_verification_email(to: str, token: str) -> bool:
   </div>
 </body></html>"""
     return await send_email(to=to, subject=subject, html_body=html_body, text_body=text_body)
+
+
+async def send_reset_password_email(to: str, token: str) -> bool:
+    """Envía el email de reset de contraseña con el link al frontend."""
+    link = f"{settings.frontend_url.rstrip('/')}/reset-password?token={token}"
+    subject = "Restablece tu contraseña en MacroSnap"
+    text_body = (
+        "Hola,\n\n"
+        "Hemos recibido una solicitud para restablecer la contraseña de tu "
+        "cuenta en MacroSnap. Abre el siguiente enlace para elegir una nueva "
+        "contraseña:\n\n"
+        f"{link}\n\n"
+        f"El enlace caduca en {settings.reset_password_token_expire_hours} horas.\n\n"
+        "Si no solicitaste este cambio, ignora este mensaje y tu contraseña "
+        "seguirá siendo la misma.\n"
+    )
+    html_body = f"""<!doctype html>
+<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#0F0F0F;color:#fff;padding:24px">
+  <div style="max-width:520px;margin:0 auto;background:#1A1A1A;border-radius:16px;padding:32px">
+    <h1 style="color:#4ADE80;margin-top:0">Restablecer contraseña</h1>
+    <p>Hemos recibido una solicitud para restablecer tu contraseña. Pulsa el botón para elegir una nueva:</p>
+    <p style="text-align:center;margin:32px 0">
+      <a href="{link}" style="background:#4ADE80;color:#0F0F0F;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700">
+        Restablecer contraseña
+      </a>
+    </p>
+    <p style="color:#999;font-size:13px">
+      O copia este enlace en tu navegador:<br>
+      <a href="{link}" style="color:#60A5FA">{link}</a>
+    </p>
+    <p style="color:#666;font-size:12px;margin-top:32px">
+      El enlace caduca en {settings.reset_password_token_expire_hours} horas.
+      Si no solicitaste este cambio, ignora este mensaje.
+    </p>
+  </div>
+</body></html>"""
+    return await send_email(to=to, subject=subject, html_body=html_body, text_body=text_body)

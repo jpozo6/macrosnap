@@ -20,6 +20,8 @@ class User(Base):
     is_verified = Column(Boolean, nullable=False, default=False)
     verification_token = Column(String(255), nullable=True, unique=True, index=True)
     verification_token_expires_at = Column(DateTime, nullable=True)
+    reset_password_token = Column(String(255), nullable=True, unique=True, index=True)
+    reset_password_token_expires_at = Column(DateTime, nullable=True)
     created_at = Column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

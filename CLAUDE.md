@@ -32,6 +32,7 @@ Cada ejecución del grafo se tracéa automáticamente en LangSmith.
 - SECRET_KEY — string largo aleatorio para firmar los JWT (obligatorio en producción)
 - ACCESS_TOKEN_EXPIRE_MINUTES — minutos de vida del JWT (default 10080 = 7 días)
 - VERIFICATION_TOKEN_EXPIRE_HOURS — horas de vida del token de verificación (default 24)
+- RESET_PASSWORD_TOKEN_EXPIRE_HOURS — horas de vida del token de reset de contraseña (default 1)
 - FRONTEND_URL — URL pública del frontend para construir el enlace de verificación
   (dev local: `http://localhost:8081`, prod web: `http://<tu-host>`)
 
@@ -54,6 +55,10 @@ contenido del email (útil en desarrollo).
   se normaliza a minúsculas y debe ser único.
 - Tras `/auth/register` se envía email con token; `/auth/verify-email?token=...`
   marca la cuenta como verificada. El login falla con 403 si el email no está verificado.
+- Reset de contraseña: `/auth/forgot-password` (respuesta genérica) envía un email
+  con token; `/auth/reset-password` acepta `{token, new_password, new_password_confirm}`
+  y sustituye la contraseña. El token caduca en `RESET_PASSWORD_TOKEN_EXPIRE_HOURS`
+  y se invalida tras su uso.
 - Token JWT en `Authorization: Bearer <token>`. En mobile se guarda en
   `expo-secure-store` (nativo) o `localStorage` (web).
 - Todas las rutas de `/meals` y `/analyze` requieren usuario autenticado; los meals

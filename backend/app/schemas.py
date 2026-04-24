@@ -113,3 +113,23 @@ class ResendVerificationRequest(BaseModel):
     """Petición para reenviar el email de verificación."""
 
     email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Petición para iniciar el flujo de reset de contraseña."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Petición para establecer una nueva contraseña a partir del token."""
+
+    token: str = Field(min_length=10)
+    new_password: str = Field(min_length=8, max_length=128)
+    new_password_confirm: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def _passwords_match(self) -> "ResetPasswordRequest":
+        if self.new_password != self.new_password_confirm:
+            raise ValueError("Las contraseñas no coinciden.")
+        return self

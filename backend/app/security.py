@@ -52,3 +52,8 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
 def generate_verification_token() -> str:
     """Genera un token URL-safe para verificación de email."""
     return secrets.token_urlsafe(48)
+
+
+def generate_reset_password_token() -> str:
+    """Genera un token URL-safe para reset de contraseña."""
+    return secrets.token_urlsafe(48)
