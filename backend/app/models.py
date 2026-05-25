@@ -27,6 +27,60 @@ class User(Base):
     )
 
     meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
+    diabetic_profile = relationship(
+        "DiabeticProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class DiabeticProfile(Base):
+    """Perfil clínico del usuario diabético.
+
+    1:1 con `User`. Si no existe, el modo diabético está desactivado.
+
+    Las franjas horarias son fijas (modelo "Opción A"): desayuno 00-11h,
+    comida 11-17h, cena 17-24h. Si en el futuro se quieren franjas
+    configurables, esto se moverá a una tabla aparte `diabetic_profile_slots`.
+    """
+
+    __tablename__ = "diabetic_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True
+    )
+
+    # Configuración general
+    ration_grams = Column(Integer, nullable=False, default=10)
+    target_glucose = Column(Integer, nullable=False, default=110)  # mg/dL
+    hypo_threshold = Column(Integer, nullable=False, default=70)  # mg/dL
+    bolus_rounding_step = Column(Float, nullable=False, default=0.5)
+
+    # Ajuste por ejercicio (fracción: -0.20 = -20%)
+    exercise_moderate_factor = Column(Float, nullable=False, default=-0.20)
+    exercise_intense_factor = Column(Float, nullable=False, default=-0.40)
+
+    # Ratios por franja horaria. IPR = insulina/ración (U). ISF = mg/dL bajada por U.
+    ipr_breakfast = Column(Float, nullable=False)
+    ipr_lunch = Column(Float, nullable=False)
+    ipr_dinner = Column(Float, nullable=False)
+    isf_breakfast = Column(Integer, nullable=False)
+    isf_lunch = Column(Integer, nullable=False)
+    isf_dinner = Column(Integer, nullable=False)
+
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    user = relationship("User", back_populates="diabetic_profile")
 
 
 class Meal(Base):
