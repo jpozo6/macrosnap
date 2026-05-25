@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.db import Base, engine
+from app.migrations import apply_missing_columns
 from app.rate_limit import limiter
 from app.routers import analysis, auth, meals
 from app.services.langsmith import setup_langsmith
@@ -19,8 +20,9 @@ logger = logging.getLogger(__name__)
 # Configurar LangSmith tracing
 setup_langsmith()
 
-# Crear tablas en la base de datos
+# Crear tablas en la base de datos y aplicar migraciones in-place pendientes.
 Base.metadata.create_all(bind=engine)
+apply_missing_columns(engine)
 
 app = FastAPI(
     title="MacroSnap API",
