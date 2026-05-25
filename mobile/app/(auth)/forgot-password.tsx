@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { forgotPassword } from "../../services/auth";
+import { showAlert } from "../../services/alert";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -23,7 +23,7 @@ export default function ForgotPasswordScreen() {
   const handleSubmit = async () => {
     const trimmed = email.trim();
     if (!trimmed) {
-      Alert.alert("Email vacío", "Introduce el email de tu cuenta.");
+      showAlert("Email vacío", "Introduce el email de tu cuenta.");
       return;
     }
     setSending(true);
@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
       await forgotPassword(trimmed);
       setSent(true);
     } catch (err: any) {
-      Alert.alert(
+      showAlert(
         "Error",
         err?.response?.data?.detail ?? "No se pudo enviar el email.",
       );

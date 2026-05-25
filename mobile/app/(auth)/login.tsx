@@ -3,7 +3,6 @@
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useAuthStore } from "../../store/useAuthStore";
+import { showAlert } from "../../services/alert";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -21,7 +21,7 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Datos incompletos", "Introduce email y contraseña.");
+      showAlert("Datos incompletos", "Introduce email y contraseña.");
       return;
     }
     try {
@@ -30,15 +30,15 @@ export default function LoginScreen() {
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 403) {
-        Alert.alert(
+        showAlert(
           "Email no verificado",
           "Revisa tu bandeja de entrada y pulsa el enlace de confirmación.",
         );
         router.push({ pathname: "/(auth)/verify-pending", params: { email: email.trim() } });
       } else if (status === 401) {
-        Alert.alert("Credenciales incorrectas", "Revisa tu email y contraseña.");
+        showAlert("Credenciales incorrectas", "Revisa tu email y contraseña.");
       } else {
-        Alert.alert("Error", err?.response?.data?.detail ?? "No se pudo iniciar sesión.");
+        showAlert("Error", err?.response?.data?.detail ?? "No se pudo iniciar sesión.");
       }
     }
   };

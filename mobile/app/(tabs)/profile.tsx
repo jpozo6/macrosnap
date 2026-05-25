@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { useMealStore } from "../../store/useMealStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { getMacroGoals, saveMacroGoals } from "../../services/storage";
+import { showAlert, showConfirm } from "../../services/alert";
 import type { MacroGoals } from "../../types";
 
 interface GoalField {
@@ -35,10 +35,11 @@ export default function ProfileScreen() {
   const [draft, setDraft] = useState<MacroGoals>(goals);
 
   const handleLogout = () => {
-    Alert.alert("Cerrar sesión", "¿Seguro que quieres salir?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Salir", style: "destructive", onPress: () => { void logout(); } },
-    ]);
+    showConfirm("Cerrar sesión", "¿Seguro que quieres salir?", {
+      confirmLabel: "Salir",
+      destructive: true,
+      onConfirm: () => { void logout(); },
+    });
   };
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     await saveMacroGoals(draft);
     setGoals(draft);
-    Alert.alert("Guardado", "Tus objetivos se han actualizado.");
+    showAlert("Guardado", "Tus objetivos se han actualizado.");
   };
 
   const updateField = (key: keyof MacroGoals, value: string) => {
