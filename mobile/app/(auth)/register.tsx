@@ -3,7 +3,6 @@
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useAuthStore } from "../../store/useAuthStore";
+import { showAlert } from "../../services/alert";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
@@ -26,15 +26,15 @@ export default function RegisterScreen() {
     const e2 = emailConfirm.trim().toLowerCase();
 
     if (!e1 || !e2 || !password) {
-      Alert.alert("Datos incompletos", "Rellena todos los campos.");
+      showAlert("Datos incompletos", "Rellena todos los campos.");
       return;
     }
     if (e1 !== e2) {
-      Alert.alert("Emails distintos", "Los correos electrónicos no coinciden.");
+      showAlert("Emails distintos", "Los correos electrónicos no coinciden.");
       return;
     }
     if (password.length < 8) {
-      Alert.alert("Contraseña corta", "Usa al menos 8 caracteres.");
+      showAlert("Contraseña corta", "Usa al menos 8 caracteres.");
       return;
     }
 
@@ -44,15 +44,15 @@ export default function RegisterScreen() {
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 409) {
-        Alert.alert("Email en uso", "Ya existe una cuenta con ese email.");
+        showAlert("Email en uso", "Ya existe una cuenta con ese email.");
       } else if (status === 422) {
         const detail = err?.response?.data?.detail;
         const msg = Array.isArray(detail)
           ? detail.map((d: any) => d.msg).join("\n")
           : detail ?? "Datos inválidos.";
-        Alert.alert("Datos inválidos", msg);
+        showAlert("Datos inválidos", msg);
       } else {
-        Alert.alert("Error", err?.response?.data?.detail ?? "No se pudo registrar.");
+        showAlert("Error", err?.response?.data?.detail ?? "No se pudo registrar.");
       }
     }
   };

@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { resetPassword } from "../../services/auth";
+import { showAlert } from "../../services/alert";
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -44,11 +44,11 @@ export default function ResetPasswordScreen() {
 
   const handleSubmit = async () => {
     if (password.length < 8) {
-      Alert.alert("Contraseña corta", "La contraseña debe tener al menos 8 caracteres.");
+      showAlert("Contraseña corta", "La contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (password !== confirm) {
-      Alert.alert("No coinciden", "Las contraseñas introducidas no coinciden.");
+      showAlert("No coinciden", "Las contraseñas introducidas no coinciden.");
       return;
     }
     setSubmitting(true);
@@ -56,7 +56,7 @@ export default function ResetPasswordScreen() {
       await resetPassword(token, password, confirm);
       setDone(true);
     } catch (err: any) {
-      Alert.alert(
+      showAlert(
         "Error",
         err?.response?.data?.detail ?? "No se pudo restablecer la contraseña.",
       );

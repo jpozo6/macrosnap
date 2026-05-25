@@ -3,7 +3,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { resendVerification } from "../../services/auth";
+import { showAlert } from "../../services/alert";
 
 export default function VerifyPendingScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
@@ -18,15 +18,15 @@ export default function VerifyPendingScreen() {
 
   const handleResend = async () => {
     if (!email) {
-      Alert.alert("Email desconocido", "Vuelve a registrarte o inicia sesión.");
+      showAlert("Email desconocido", "Vuelve a registrarte o inicia sesión.");
       return;
     }
     setSending(true);
     try {
       await resendVerification(email);
-      Alert.alert("Enviado", "Si el email existe, te hemos enviado un nuevo enlace.");
+      showAlert("Enviado", "Si el email existe, te hemos enviado un nuevo enlace.");
     } catch {
-      Alert.alert("Error", "No se pudo reenviar el email.");
+      showAlert("Error", "No se pudo reenviar el email.");
     } finally {
       setSending(false);
     }
