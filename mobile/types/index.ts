@@ -22,6 +22,17 @@ export interface AnalysisResult {
   foods: FoodItem[];
 }
 
+export interface BolusData {
+  glucose_mg_dl: number;
+  exercise_level: ExerciseLevel;
+  slot: TimeSlot;
+  rations_hc: number;
+  bolus_carb_units: number;
+  bolus_correction_units: number;
+  bolus_suggested_units: number;
+  bolus_total_units: number;
+}
+
 export interface Meal {
   id: number;
   meal_name: string;
@@ -29,6 +40,7 @@ export interface Meal {
   foods: FoodItem[];
   image_base64?: string;
   created_at: string;
+  bolus?: BolusData | null;
 }
 
 export interface DailySummary {

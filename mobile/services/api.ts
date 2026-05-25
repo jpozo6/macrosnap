@@ -5,7 +5,9 @@ import { Platform } from "react-native";
 import type {
   AnalysisResult,
   DailySummary,
+  ExerciseLevel,
   Meal,
+  TimeSlot,
 } from "../types";
 
 // Producción: IP del servidor Hetzner (Caddy proxy en puerto 80)
@@ -100,6 +102,24 @@ export async function getDailySummary(date: string): Promise<DailySummary> {
     params: { date },
   });
   return response.data;
+}
+
+export interface SetMealBolusPayload {
+  glucose: number;
+  exercise: ExerciseLevel;
+  slot: TimeSlot;
+  bolus_chosen_units: number;
+}
+
+/** Registra el bolo de insulina en una comida ya analizada.
+ * El backend recalcula el desglose con el perfil vigente; solo se persiste
+ * tal cual el `bolus_chosen_units` que decida el usuario. */
+export async function setMealBolus(
+  mealId: number,
+  payload: SetMealBolusPayload,
+): Promise<Meal> {
+  const res = await api.patch<Meal>(`/meals/${mealId}/bolus`, payload);
+  return res.data;
 }
 
 export default api;

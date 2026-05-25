@@ -1,18 +1,20 @@
-/** Pestaña "Diabetes": estado vacío + formulario de perfil clínico.
+/** Pestaña "Diabetes": historial de bolos + configuración del perfil clínico.
  *
- * Estados:
- *   1. `isLoaded === false` → loader (mientras GET /diabetic-profile).
- *   2. Sin perfil y sin pulsar configurar → empty state explicativo + CTA.
- *   3. Con perfil o tras CTA → formulario completo con guardar / desactivar.
+ * Flujo:
+ *   - Sin perfil → empty state → al pulsar "Configurar" se abre el formulario.
+ *   - Con perfil → segmented "Historial / Perfil". Aterriza en historial; el
+ *     perfil queda accesible para editar/desactivar.
  *
- * El formulario es la única pieza de configuración del modo diabético en
- * la app (no hay toggle separado): guardar = activar; desactivar = DELETE.
+ * El formulario es la única vía para activar/desactivar el modo diabético
+ * (guardar = activar; "Desactivar modo" = DELETE del perfil).
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -23,11 +25,21 @@ import {
   View,
 } from "react-native";
 import { showAlert, showConfirm } from "../../services/alert";
+import { getMeals } from "../../services/api";
+import { TIME_SLOT_LABELS } from "../../services/timeSlot";
 import { useDiabeticStore } from "../../store/useDiabeticStore";
 import type {
   BolusRoundingStep,
   DiabeticProfileUpsert,
+  ExerciseLevel,
+  Meal,
 } from "../../types";
+
+const EXERCISE_LABEL: Record<ExerciseLevel, string> = {
+  none: "Sin ejercicio",
+  moderate: "Ejercicio moderado",
+  intense: "Ejercicio intenso",
+};
 
 const ROUNDING_STEPS: BolusRoundingStep[] = [0.1, 0.5, 1.0];
 
@@ -76,6 +88,8 @@ export default function DiabetesScreen() {
     useDiabeticStore();
   const [showForm, setShowForm] = useState(false);
   const [draft, setDraft] = useState<DraftState>(DEFAULT_DRAFT);
+  // Cuando hay perfil, segmentamos entre historial (default) y perfil.
+  const [view, setView] = useState<"history" | "profile">("history");
 
   useEffect(() => {
     void load();
@@ -209,7 +223,25 @@ export default function DiabetesScreen() {
   }
 
   if (!profile && !showForm) {
-    return <EmptyState onActivate={() => setShowForm(true)} />;
+    return (
+      <EmptyState
+        onActivate={() => {
+          setShowForm(true);
+          setView("profile");
+        }}
+      />
+    );
+  }
+
+  // Con perfil, ofrecemos historial + perfil. Sin perfil (recién creado o
+  // editando por primera vez tras CTA), solo perfil.
+  if (profile && view === "history") {
+    return (
+      <View style={styles.container}>
+        <SegmentedTabs view={view} onChange={setView} />
+        <BolusHistoryView rationGrams={profile.ration_grams} />
+      </View>
+    );
   }
 
   return (
@@ -217,6 +249,7 @@ export default function DiabetesScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {profile ? <SegmentedTabs view={view} onChange={setView} /> : null}
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -351,6 +384,145 @@ export default function DiabetesScreen() {
 }
 
 // ===== Subcomponentes =====
+
+function SegmentedTabs({
+  view,
+  onChange,
+}: {
+  view: "history" | "profile";
+  onChange: (v: "history" | "profile") => void;
+}) {
+  return (
+    <View style={styles.tabBar}>
+      {(["history", "profile"] as const).map((v) => {
+        const active = view === v;
+        return (
+          <TouchableOpacity
+            key={v}
+            style={[styles.tabBtn, active && styles.tabBtnActive]}
+            onPress={() => onChange(v)}
+          >
+            <Text style={[styles.tabTxt, active && styles.tabTxtActive]}>
+              {v === "history" ? "Historial" : "Perfil"}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+function BolusHistoryView({ rationGrams }: { rationGrams: number }) {
+  const [meals, setMeals] = useState<Meal[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setError(null);
+    try {
+      // Pedimos las últimas 50 comidas; filtramos client-side las que tienen bolo.
+      const all = await getMeals({ limit: 50, offset: 0 });
+      setMeals(all.filter((m) => m.bolus));
+    } catch (err: any) {
+      setError(err?.message ?? "No se pudo cargar el historial.");
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
+
+  if (!meals && !error) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator color="#4ADE80" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.historyEmpty}>
+        <Text style={styles.historyEmptyTitle}>Error</Text>
+        <Text style={styles.historyEmptyBody}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (meals && meals.length === 0) {
+    return (
+      <View style={styles.historyEmpty}>
+        <Ionicons name="medkit-outline" size={48} color="#4ADE80" />
+        <Text style={styles.historyEmptyTitle}>Sin bolos registrados</Text>
+        <Text style={styles.historyEmptyBody}>
+          Analiza una comida y pulsa "Calcular bolo" para empezar a llevar el
+          control de la insulina por comida.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={meals!}
+      keyExtractor={(m) => String(m.id)}
+      contentContainerStyle={styles.historyList}
+      renderItem={({ item }) => (
+        <BolusHistoryRow meal={item} rationGrams={rationGrams} />
+      )}
+    />
+  );
+}
+
+function BolusHistoryRow({
+  meal,
+  rationGrams: _rationGrams,
+}: {
+  meal: Meal;
+  rationGrams: number;
+}) {
+  const b = meal.bolus!;
+  const when = new Date(meal.created_at).toLocaleString("es", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const differsFromSuggested =
+    Math.abs(b.bolus_total_units - b.bolus_suggested_units) > 0.05;
+  return (
+    <TouchableOpacity
+      style={styles.historyCard}
+      onPress={() => router.push(`/result/${meal.id}`)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.historyHeader}>
+        <Text style={styles.historyMealName} numberOfLines={1}>
+          {meal.meal_name}
+        </Text>
+        <Text style={styles.historyTime}>{when}</Text>
+      </View>
+      <View style={styles.historyBolusRow}>
+        <Text style={styles.historyBolusValue}>
+          {b.bolus_total_units.toFixed(1)} U
+        </Text>
+        {differsFromSuggested && (
+          <Text style={styles.historyBolusSuggested}>
+            sugerido {b.bolus_suggested_units.toFixed(1)} U
+          </Text>
+        )}
+      </View>
+      <Text style={styles.historyDetails}>
+        {b.rations_hc} raciones · {b.glucose_mg_dl} mg/dL ·{" "}
+        {TIME_SLOT_LABELS[b.slot]}
+        {b.exercise_level !== "none"
+          ? ` · ${EXERCISE_LABEL[b.exercise_level].toLowerCase()}`
+          : ""}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 function EmptyState({ onActivate }: { onActivate: () => void }) {
   return (
@@ -597,4 +769,75 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   destructiveTxt: { color: "#F87171", fontSize: 15, fontWeight: "600" },
+
+  // Tabs superiores (Historial / Perfil)
+  tabBar: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#1A1A1A",
+    alignItems: "center",
+  },
+  tabBtnActive: { backgroundColor: "#4ADE80" },
+  tabTxt: { color: "#999", fontSize: 14, fontWeight: "600" },
+  tabTxtActive: { color: "#0F0F0F" },
+
+  // Historial
+  historyList: { padding: 16, gap: 10 },
+  historyEmpty: {
+    flex: 1,
+    backgroundColor: "#0F0F0F",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    gap: 12,
+  },
+  historyEmptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  historyEmptyBody: {
+    color: "#CCC",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  historyCard: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 6,
+    gap: 8,
+  },
+  historyMealName: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  historyTime: { color: "#666", fontSize: 12 },
+  historyBolusRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    marginBottom: 4,
+  },
+  historyBolusValue: { color: "#4ADE80", fontSize: 22, fontWeight: "800" },
+  historyBolusSuggested: { color: "#777", fontSize: 12 },
+  historyDetails: { color: "#999", fontSize: 12 },
 });
