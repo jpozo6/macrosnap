@@ -57,3 +57,51 @@ export interface AuthSession {
   token: string;
   user: User;
 }
+
+// ===== Diabetes / bolo de insulina =====
+
+export type TimeSlot = "breakfast" | "lunch" | "dinner";
+export type ExerciseLevel = "none" | "moderate" | "intense";
+export type BolusRoundingStep = 0.1 | 0.5 | 1.0;
+
+/** Perfil diabético del usuario (1:1 con la cuenta). */
+export interface DiabeticProfile {
+  id: number;
+  ration_grams: number;
+  target_glucose: number;
+  hypo_threshold: number;
+  bolus_rounding_step: BolusRoundingStep;
+  exercise_moderate_factor: number; // fracción negativa, p. ej. -0.20
+  exercise_intense_factor: number;
+  ipr_breakfast: number;
+  ipr_lunch: number;
+  ipr_dinner: number;
+  isf_breakfast: number;
+  isf_lunch: number;
+  isf_dinner: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Datos enviados al backend para crear o actualizar el perfil. */
+export type DiabeticProfileUpsert = Omit<
+  DiabeticProfile,
+  "id" | "created_at" | "updated_at"
+>;
+
+export interface BolusCalcRequest {
+  carbs_g: number;
+  glucose: number;
+  exercise: ExerciseLevel;
+  slot: TimeSlot;
+}
+
+export interface BolusCalcResult {
+  rations: number;
+  bolus_carb: number;
+  bolus_correction: number;
+  exercise_factor: number;
+  bolus_before_round: number;
+  bolus_total: number;
+  hypoglycemia_warning: boolean;
+}
