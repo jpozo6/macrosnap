@@ -50,6 +50,13 @@ export default function RootLayout() {
             presentation: "modal",
           }}
         />
+        <Stack.Screen
+          name="bolus/[mealId]"
+          options={{
+            title: "Calcular bolo",
+            presentation: "modal",
+          }}
+        />
       </Stack>
     </>
   );

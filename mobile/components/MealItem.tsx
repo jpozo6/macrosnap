@@ -1,6 +1,7 @@
 /** Item en lista del histórico de comidas. */
 
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Meal } from "../types";
 
 interface MealItemProps {
@@ -17,10 +18,23 @@ export function MealItem({ meal, onPress }: MealItemProps) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {meal.meal_name}
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>
+            {meal.meal_name}
+          </Text>
+          {meal.bolus ? (
+            <View style={styles.bolusBadge}>
+              <Ionicons name="medkit" size={11} color="#0F0F0F" />
+              <Text style={styles.bolusBadgeTxt}>
+                {meal.bolus.bolus_total_units.toFixed(1)} U
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.time}>
+          {time}
+          {meal.bolus ? ` · ${meal.bolus.rations_hc} raciones` : ""}
         </Text>
-        <Text style={styles.time}>{time}</Text>
       </View>
       <View style={styles.macros}>
         <Text style={styles.calories}>{Math.round(meal.macros.calories)} kcal</Text>
@@ -47,12 +61,28 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
   name: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 4,
+    flexShrink: 1,
   },
+  bolusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#4ADE80",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  bolusBadgeTxt: { color: "#0F0F0F", fontSize: 11, fontWeight: "700" },
   time: {
     color: "#666666",
     fontSize: 13,

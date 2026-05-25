@@ -7,9 +7,11 @@ import { NutrientBar } from "./NutrientBar";
 interface MacroCardProps {
   macros: MacroNutrients;
   goals?: MacroGoals;
+  /** Si está definido, muestra raciones de HC = carbs_g / rationGrams. */
+  rationGrams?: number;
 }
 
-export function MacroCard({ macros, goals }: MacroCardProps) {
+export function MacroCard({ macros, goals, rationGrams }: MacroCardProps) {
   const defaultGoals: MacroGoals = goals ?? {
     calories: 2000,
     protein_g: 150,
@@ -31,6 +33,17 @@ export function MacroCard({ macros, goals }: MacroCardProps) {
           de {defaultGoals.calories} kcal ({Math.round(calPercent * 100)}%)
         </Text>
       </View>
+
+      {rationGrams && rationGrams > 0 && (
+        <View style={styles.rationsRow}>
+          <Text style={styles.rationsValue}>
+            {(Math.round((macros.carbs_g / rationGrams) * 10) / 10).toFixed(1)}
+          </Text>
+          <Text style={styles.rationsLabel}>
+            raciones de HC ({rationGrams} g/ración)
+          </Text>
+        </View>
+      )}
 
       {/* Barras de macros */}
       <View style={styles.barsSection}>
@@ -105,4 +118,17 @@ const styles = StyleSheet.create({
   barsSection: {
     gap: 4,
   },
+  rationsRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#0F0F0F",
+    borderRadius: 10,
+  },
+  rationsValue: { color: "#60A5FA", fontSize: 20, fontWeight: "700" },
+  rationsLabel: { color: "#999", fontSize: 13 },
 });
