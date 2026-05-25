@@ -4,6 +4,7 @@ import { create } from "zustand";
 import * as AuthAPI from "../services/auth";
 import { configureAuth } from "../services/api";
 import { clearToken, getToken, saveToken } from "../services/tokenStorage";
+import { useDiabeticStore } from "./useDiabeticStore";
 import type { User } from "../types";
 
 interface AuthStore {
@@ -72,6 +73,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   logout: async () => {
     await clearToken();
     set({ token: null, user: null });
+    // Resetear stores que cachean datos del usuario para que no haya
+    // fugas entre sesiones (p. ej. distinto usuario en la misma web).
+    useDiabeticStore.getState().reset();
   },
 
   refreshMe: async () => {
