@@ -102,6 +102,19 @@ class Meal(Base):
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
 
+    # Datos del bolo de insulina (sólo se rellenan si el usuario tiene
+    # `DiabeticProfile` y ha pasado por la pantalla de bolo tras el análisis).
+    # Todas nullable: las comidas sin bolo (modo no diabético o antiguas) las
+    # tienen a NULL.
+    glucose_mg_dl = Column(Integer, nullable=True)
+    exercise_level = Column(String(20), nullable=True)         # 'none' | 'moderate' | 'intense'
+    slot = Column(String(20), nullable=True)                   # 'breakfast' | 'lunch' | 'dinner'
+    rations_hc = Column(Float, nullable=True)
+    bolus_carb_units = Column(Float, nullable=True)
+    bolus_correction_units = Column(Float, nullable=True)
+    bolus_suggested_units = Column(Float, nullable=True)       # lo que sugirió la app
+    bolus_total_units = Column(Float, nullable=True)           # lo que el usuario eligió
+
     user = relationship("User", back_populates="meals")
 
     @property

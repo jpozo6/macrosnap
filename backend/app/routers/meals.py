@@ -8,10 +8,34 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies import get_current_user
-from app.models import Meal, User
-from app.schemas import DailySummaryResponse, FoodItem, MacroNutrients, MealResponse
+from app.models import DiabeticProfile, Meal, User
+from app.schemas import (
+    BolusData,
+    DailySummaryResponse,
+    FoodItem,
+    MacroNutrients,
+    MealBolusPatch,
+    MealResponse,
+)
+from app.services.bolus import calculate_bolus
 
 router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
+
+
+def _meal_bolus_data(meal: Meal) -> BolusData | None:
+    """Devuelve el sub-objeto de bolo si la comida lo tiene registrado."""
+    if meal.bolus_total_units is None:
+        return None
+    return BolusData(
+        glucose_mg_dl=meal.glucose_mg_dl,
+        exercise_level=meal.exercise_level,
+        slot=meal.slot,
+        rations_hc=meal.rations_hc,
+        bolus_carb_units=meal.bolus_carb_units,
+        bolus_correction_units=meal.bolus_correction_units,
+        bolus_suggested_units=meal.bolus_suggested_units,
+        bolus_total_units=meal.bolus_total_units,
+    )
 
 
 def _meal_to_response(meal: Meal) -> MealResponse:
@@ -29,6 +53,7 @@ def _meal_to_response(meal: Meal) -> MealResponse:
         foods=[FoodItem(**f) for f in meal.foods],
         image_base64=meal.image_base64,
         created_at=meal.created_at,
+        bolus=_meal_bolus_data(meal),
     )
 
 
@@ -122,3 +147,59 @@ def delete_meal(
         raise HTTPException(status_code=404, detail="Comida no encontrada")
     db.delete(meal)
     db.commit()
+
+
+@router.patch("/{meal_id}/bolus", response_model=MealResponse)
+def set_meal_bolus(
+    meal_id: int,
+    payload: MealBolusPatch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MealResponse:
+    """Registra el bolo de insulina de una comida.
+
+    El servidor recalcula el desglose con `calculate_bolus(...)` usando los
+    `carbs_g` de la comida y el perfil clínico vigente — la única cifra del
+    cliente que persistimos tal cual es `bolus_chosen_units`, lo que el
+    usuario decidió administrarse (puede diferir del sugerido).
+
+    Idempotente: una segunda llamada sobrescribe los valores anteriores.
+    """
+    meal = (
+        db.query(Meal)
+        .filter(Meal.id == meal_id, Meal.user_id == current_user.id)
+        .first()
+    )
+    if not meal:
+        raise HTTPException(status_code=404, detail="Comida no encontrada")
+
+    profile = (
+        db.query(DiabeticProfile)
+        .filter(DiabeticProfile.user_id == current_user.id)
+        .first()
+    )
+    if not profile:
+        raise HTTPException(
+            status_code=404, detail="Perfil diabético no configurado."
+        )
+
+    breakdown = calculate_bolus(
+        carbs_g=meal.carbs_g,
+        glucose_mg_dl=payload.glucose,
+        exercise=payload.exercise,
+        slot=payload.slot,
+        profile=profile,
+    )
+
+    meal.glucose_mg_dl = payload.glucose
+    meal.exercise_level = payload.exercise.value
+    meal.slot = payload.slot.value
+    meal.rations_hc = breakdown.rations
+    meal.bolus_carb_units = breakdown.bolus_carb
+    meal.bolus_correction_units = breakdown.bolus_correction
+    meal.bolus_suggested_units = breakdown.bolus_total
+    meal.bolus_total_units = payload.bolus_chosen_units
+
+    db.commit()
+    db.refresh(meal)
+    return _meal_to_response(meal)

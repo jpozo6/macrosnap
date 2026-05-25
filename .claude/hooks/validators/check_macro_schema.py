@@ -96,7 +96,11 @@ def main() -> int:
 
         if missing:
             errors.append(f"  ⚠ {filepath} ({description}): faltan campos {missing}")
-        if extra:
+        # En `models.py` el modelo `Meal` tiene Floats legítimos que NO son
+        # macros (image_base64 era nullable, rations_hc/bolus_* del PR 2 del
+        # pivot a diabéticos, etc). Solo exigimos las canónicas presentes;
+        # los demás Float son válidos.
+        if extra and "models.py" not in filepath:
             errors.append(f"  ⚠ {filepath} ({description}): campos extra {extra}")
 
     if errors:

@@ -35,6 +35,24 @@ class AnalysisResponse(BaseModel):
     foods: list[FoodItem]
 
 
+class BolusData(BaseModel):
+    """Sub-objeto con los datos del bolo de insulina de una comida.
+
+    Está como bloque anidado dentro de `MealResponse` (en vez de campos sueltos
+    al mismo nivel que los macros) para que la UI sepa de un vistazo si la
+    comida tiene bolo registrado o no (`meal.bolus is None`).
+    """
+
+    glucose_mg_dl: int
+    exercise_level: str            # 'none' | 'moderate' | 'intense'
+    slot: str                      # 'breakfast' | 'lunch' | 'dinner'
+    rations_hc: float
+    bolus_carb_units: float
+    bolus_correction_units: float
+    bolus_suggested_units: float   # lo que sugirió la app
+    bolus_total_units: float       # lo que el usuario eligió administrar
+
+
 class MealResponse(BaseModel):
     """Respuesta de una comida del histórico."""
 
@@ -44,6 +62,7 @@ class MealResponse(BaseModel):
     foods: list[FoodItem]
     image_base64: str | None = None
     created_at: datetime
+    bolus: BolusData | None = None
 
     model_config = {"from_attributes": True}
 
@@ -213,3 +232,18 @@ class BolusCalcResponse(BaseModel):
     bolus_before_round: float
     bolus_total: float
     hypoglycemia_warning: bool
+
+
+class MealBolusPatch(BaseModel):
+    """Datos que el mobile envía al confirmar el bolo de una comida.
+
+    El servidor recalcula el desglose para garantizar coherencia con el
+    perfil actual del usuario (no nos fiamos de lo que mande el cliente,
+    salvo de `bolus_chosen_units`, que es la cifra final que el usuario
+    decidió administrarse — puede diferir del sugerido).
+    """
+
+    glucose: int = Field(ge=20, le=600, description="Glucemia actual en mg/dL")
+    exercise: ExerciseLevel
+    slot: TimeSlot
+    bolus_chosen_units: float = Field(ge=0, le=50)
