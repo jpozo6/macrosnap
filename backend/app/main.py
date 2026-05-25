@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.db import Base, engine
 from app.migrations import apply_missing_columns
 from app.rate_limit import limiter
-from app.routers import analysis, auth, meals
+from app.routers import analysis, auth, diabetic_profile, meals
 from app.services.langsmith import setup_langsmith
 
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +46,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(analysis.router)
 app.include_router(meals.router)
+app.include_router(diabetic_profile.router)
 
 
 @app.get("/health")

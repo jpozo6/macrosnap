@@ -37,8 +37,15 @@ def extract_macro_fields(filepath: str, content: str) -> set[str]:
                         fields.add(name)
 
     elif "models.py" in filepath:
-        # Buscar columnas Float en Meal
-        for match in re.finditer(r'(\w+)\s*=\s*Column\(Float', content):
+        # Buscar columnas Float SOLO dentro de la clase Meal, no en otras
+        # clases del fichero (p. ej. DiabeticProfile también tiene Float).
+        meal_block = re.search(
+            r'^class Meal\b.*?(?=^class\s|\Z)',
+            content,
+            re.DOTALL | re.MULTILINE,
+        )
+        scope = meal_block.group(0) if meal_block else ""
+        for match in re.finditer(r'(\w+)\s*=\s*Column\(Float', scope):
             fields.add(match.group(1))
 
     elif "prompts.py" in filepath:
